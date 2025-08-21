@@ -1,0 +1,424 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Progress Roulette</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            background: linear-gradient(135deg, #1e3a8a, #4a90e2);
+            font-family: 'Inter', sans-serif;
+            color: #fff;
+            margin: 0;
+            padding: 20px;
+            box-sizing: border-box;
+            text-align: center;
+        }
+
+        .container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 40px;
+            padding: 30px;
+            background-color: rgba(255, 255, 255, 0.1);
+            border-radius: 20px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+            width: 100%;
+            max-width: 600px;
+        }
+
+        .title {
+            font-size: clamp(1.5rem, 5vw, 2.5rem);
+            font-weight: 700;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.3);
+            margin: 0;
+        }
+
+        .wheel-container {
+            position: relative;
+            width: clamp(250px, 60vw, 400px);
+            height: clamp(250px, 60vw, 400px);
+        }
+
+        .wheel {
+            width: 100%;
+            height: 100%;
+            border-radius: 50%;
+            border: 8px solid #f0f0f0;
+            position: relative;
+            box-shadow: 0 0 20px rgba(0, 0, 0, 0.5);
+            transition: transform 5s cubic-bezier(0.25, 0.1, 0.25, 1);
+            overflow: hidden;
+        }
+        
+        .wheel-option {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform-origin: 0% 0%;
+            font-size: clamp(0.75rem, 2vw, 1.25rem);
+            font-weight: 700;
+            text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.5);
+            color: #fff;
+            padding: 5px;
+            text-align: center;
+            user-select: none;
+            cursor: default;
+        }
+
+        .pointer {
+            position: absolute;
+            top: -20px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 0;
+            height: 0;
+            border-left: 15px solid transparent;
+            border-right: 15px solid transparent;
+            border-top: 25px solid #ffcc00;
+            filter: drop-shadow(0 4px 6px rgba(0, 0, 0, 0.2));
+            z-index: 10;
+        }
+
+        .spin-button, .reset-button {
+            padding: 12px 24px;
+            font-size: 1.2rem;
+            font-weight: 700;
+            color: #1e3a8a;
+            background: linear-gradient(45deg, #ffcc00, #ffeb3b);
+            border: none;
+            border-radius: 50px;
+            cursor: pointer;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+            transition: all 0.3s ease;
+            margin-top: 10px;
+        }
+        
+        .spin-button:hover:not(:disabled), .reset-button:hover:not(:disabled) {
+            transform: scale(1.05);
+            box-shadow: 0 8px 20px rgba(0, 0, 0, 0.3);
+        }
+
+        .spin-button:active:not(:disabled), .reset-button:active:not(:disabled) {
+            transform: scale(0.98);
+        }
+
+        .spin-button:disabled {
+            background: #ccc;
+            color: #666;
+            cursor: not-allowed;
+            opacity: 0.7;
+        }
+        
+        .reset-button {
+            background: linear-gradient(45deg, #e2e2e2, #a9a9a9);
+            color: #333;
+        }
+
+        .result {
+            margin-top: 20px;
+            font-size: 1.5rem;
+            font-weight: 700;
+            text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.5);
+            min-height: 2em;
+        }
+
+        .status-display {
+            margin-top: 20px;
+            font-size: 1rem;
+            text-align: left;
+            width: 100%;
+            padding: 10px;
+            background-color: rgba(0, 0, 0, 0.2);
+            border-radius: 10px;
+        }
+
+        .status-display h3 {
+            margin: 0 0 10px 0;
+            font-size: 1.2rem;
+            font-weight: 700;
+        }
+        
+        .status-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 5px;
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h1 class="title">Decision Roulette</h1>
+    <div class="wheel-container">
+        <!-- The labels are now back inside the wheel so they rotate with it -->
+        <div class="wheel" id="wheel">
+            <div class="wheel-option option1">Project</div>
+            <div class="wheel-option option2">Study</div>
+            <div class="wheel-option option3">Games</div>
+            <div class="wheel-option option4">Anime</div>
+        </div>
+        <div class="pointer"></div>
+    </div>
+    <button class="spin-button" id="spin-button">Spin!</button>
+    <button class="reset-button" id="reset-button">Reset Chances</button>
+    <div class="result" id="result"></div>
+    <div class="status-display" id="status-display">
+        <h3>Current Chances</h3>
+    </div>
+</div>
+
+<script>
+    // Get references to DOM elements
+    const wheel = document.getElementById('wheel');
+    const spinButton = document.getElementById('spin-button');
+    const resetButton = document.getElementById('reset-button');
+    const resultDisplay = document.getElementById('result');
+    const statusDisplay = document.getElementById('status-display');
+
+    // Define the options and their initial weights. The total must be 100.
+    const initialOptions = [
+        { name: "Project", fullName: "Make Progress on a Personal/Professional Project (Software)", color: "#ef4444", weight: 25 },
+        { name: "Study", fullName: "Study and Earn 1 or 2 Specialization Certificates", color: "#f97316", weight: 25 },
+        { name: "Games", fullName: "Play Video Games to Recharge Your Energy", color: "#10b981", weight: 25 },
+        { name: "Anime", fullName: "Watch Anime to Recharge Too", color: "#3b82f6", weight: 25 }
+    ];
+
+    let options = [];
+    let finalRotationValue = 0; // Store the final rotation value
+    let winningIndex = -1; // New variable to store the winning index for the current spin
+
+    // Function to load state from localStorage or initialize it
+    function loadState() {
+        const storedState = localStorage.getItem('rouletteState');
+        if (storedState) {
+            options = JSON.parse(storedState);
+        } else {
+            options = JSON.parse(JSON.stringify(initialOptions)); // Deep copy
+        }
+        updateUI();
+    }
+
+    // Function to save state to localStorage
+    function saveState() {
+        localStorage.setItem('rouletteState', JSON.stringify(options));
+    }
+
+    // Function to update the UI based on current options
+    function updateUI() {
+        updateWheelColors();
+        updateStatusDisplay();
+        // The labels are now updated every time the state changes
+        updateWheelLabels();
+    }
+    
+    // Function to update the positions and rotations of the text labels
+    function updateWheelLabels() {
+        const wheelOptions = document.querySelectorAll('.wheel-option');
+        let currentRotation = 0;
+        options.forEach((option, index) => {
+            
+            const angle = option.weight / 100 * 360; // Calculate angle for each slice
+            //Got Tired Figuring out the math to make the labels adjust to the center of the cone for each iteration
+            //The idea was for each iteration of the spin the chances for the chosen Item will be reduced by 50%
+            //and the reduced percentage from the chosen category would be distributed to the other categories increasing their probability
+            //the colored sections adjust as intended but I cant keep the labels on the center of the section after each adjusted iteration.
+            //at this point I know its a math problem.... For now Ill put a pin on this
+            if (option.weight){
+
+            }
+            const midAngle = currentRotation + angle /2; // Find the middle of the slice
+            console.log(angle);
+            // This transform will rotate the label and place it in the center of its slice
+            // The labels will now move with the wheel and their position will update
+            // to reflect the new slice sizes after each spin.
+            wheelOptions[index].style.transform = `
+                rotate(${midAngle}deg) 
+                translateX(120px)
+            `;
+
+            
+            currentRotation += angle;
+        });
+    }
+
+    // Function to update the conic gradient for the wheel
+    function updateWheelColors() {
+        let gradientString = 'conic-gradient(';
+        let cumulativeWeight = 0;
+        options.forEach(option => {
+            gradientString += `${option.color} ${cumulativeWeight}% ${cumulativeWeight + option.weight}%, `;
+            cumulativeWeight += option.weight;
+        });
+        gradientString = gradientString.slice(0, -2) + ')'; // Remove trailing comma and space
+        wheel.style.background = gradientString;
+    }
+
+    // Function to update the status display with current percentages
+    function updateStatusDisplay() {
+        statusDisplay.innerHTML = `<h3>Current Chances</h3>`;
+        options.forEach(option => {
+            const statusItem = document.createElement('div');
+            statusItem.className = 'status-item';
+            statusItem.innerHTML = `
+                <span>${option.name}</span>
+                <span>${option.weight.toFixed(1)}%</span>
+            `;
+            statusDisplay.appendChild(statusItem);
+        });
+    }
+
+    // Function to reset all chances to their initial state
+    function resetChances() {
+        localStorage.removeItem('rouletteState');
+        loadState();
+        resultDisplay.textContent = "Chances have been reset!";
+        wheel.style.transition = 'none';
+        wheel.style.transform = 'rotate(0deg)';
+    }
+
+    // Function to determine the winner based on weighted chances
+    function getWinner(currentOptions) {
+        const totalWeight = currentOptions.reduce((sum, option) => sum + option.weight, 0);
+        const randomValue = Math.random() * totalWeight;
+
+        let cumulativeWeight = 0;
+        for (let i = 0; i < currentOptions.length; i++) {
+            cumulativeWeight += currentOptions[i].weight;
+            if (randomValue <= cumulativeWeight) {
+                return i;
+            }
+        }
+        return -1; // Should not happen with valid weights
+    }
+
+    // Event listener for the spin button click
+    spinButton.addEventListener('click', () => {
+        spinButton.disabled = true;
+        resultDisplay.textContent = "";
+
+        // Reset the wheel rotation without animation
+        wheel.style.transition = 'none';
+        wheel.style.transform = `rotate(0deg)`;
+
+        // Use a setTimeout with 0 delay to ensure the reset is applied before the new transition begins
+        setTimeout(() => {
+            // Re-enable the transition for the next spin
+            wheel.style.transition = 'transform 5s cubic-bezier(0.25, 0.1, 0.25, 1)';
+
+            // Determine the winner first
+            winningIndex = getWinner(options);
+            
+            if (winningIndex === -1) {
+                resultDisplay.textContent = "Could not determine a winner. Please try again.";
+                spinButton.disabled = false;
+                return;
+            }
+
+            // Create a temporary copy of options and apply the chance reduction
+            let tempOptions = JSON.parse(JSON.stringify(options));
+            const reducedAmount = tempOptions[winningIndex].weight * 0.50;
+            const nonWinningOptionsCount = tempOptions.length - 1;
+            const redistributedAmount = nonWinningOptionsCount > 0 ? reducedAmount / nonWinningOptionsCount : 0;
+
+            tempOptions[winningIndex].weight -= reducedAmount;
+            
+            if (tempOptions[winningIndex].weight < 0) {
+                tempOptions[winningIndex].weight = 0;
+            }
+
+            tempOptions.forEach((option, index) => {
+                if (index !== winningIndex) {
+                    option.weight += redistributedAmount;
+                }
+            });
+
+            // Normalize weights
+            const currentTotalWeight = tempOptions.reduce((sum, opt) => sum + opt.weight, 0);
+            tempOptions = tempOptions.map(opt => ({
+                ...opt,
+                weight: (opt.weight / currentTotalWeight) * 100
+            }));
+
+            // Calculate the rotation needed to land on the winning option,
+            // using the newly calculated temporary weights.
+            let cumulativeWeightBeforeWinner = 0;
+            for (let i = 0; i < winningIndex; i++) {
+                cumulativeWeightBeforeWinner += tempOptions[i].weight;
+            }
+
+            const targetDegree = 360 - (cumulativeWeightBeforeWinner + tempOptions[winningIndex].weight / 2) / 100 * 360;
+            
+            // Add multiple full rotations for a satisfying spin effect
+            const fullRotations = 10;
+            finalRotationValue = (fullRotations * 360) + targetDegree;
+
+            // Apply the rotation transform to the wheel
+            wheel.style.transform = `rotate(${finalRotationValue}deg)`;
+        }, 0);
+    });
+
+    // Event listener to handle the end of the transition
+    wheel.addEventListener('transitionend', (e) => {
+        // Only run this logic for the 'transform' property transition
+        if (e.propertyName !== 'transform') return;
+        
+        // This is the core fix. We are now updating the state
+        // with the same changes that were used to calculate the spin.
+        if (winningIndex !== -1) {
+            const reducedAmount = options[winningIndex].weight * 0.50;
+            const nonWinningOptionsCount = options.length - 1;
+            const redistributedAmount = nonWinningOptionsCount > 0 ? reducedAmount / nonWinningOptionsCount : 0;
+
+            options[winningIndex].weight -= reducedAmount;
+            
+            if (options[winningIndex].weight < 0) {
+                options[winningIndex].weight = 0;
+            }
+
+            options.forEach((option, index) => {
+                if (index !== winningIndex) {
+                    option.weight += redistributedAmount;
+                }
+            });
+
+            // Normalize weights to ensure they sum to 100,
+            const currentTotalWeight = options.reduce((sum, opt) => sum + opt.weight, 0);
+            options = options.map(opt => ({
+                ...opt,
+                weight: (opt.weight / currentTotalWeight) * 100
+            }));
+            
+            // Save the new state
+            saveState();
+            
+            // Display the winning option
+            resultDisplay.textContent = `The wheel has decided: ${options[winningIndex].fullName}`;
+        }
+        
+        // Reset winningIndex and re-enable the spin button
+        winningIndex = -1;
+        spinButton.disabled = false;
+        
+        // Update the UI to show the new percentages
+        updateUI();
+    });
+
+    // Event listener for the reset button
+    resetButton.addEventListener('click', resetChances);
+
+    // Initial load
+    window.onload = loadState;
+</script>
+
+</body>
+</html>
