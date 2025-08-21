@@ -63,7 +63,8 @@
             position: absolute;
             top: 50%;
             left: 50%;
-            transform-origin: 0% 0%;
+            /* This is the key change. We'll set the transform origin here */
+            transform-origin: 0% 0%; 
             font-size: clamp(0.75rem, 2vw, 1.25rem);
             font-weight: 700;
             text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.5);
@@ -160,12 +161,12 @@
 <div class="container">
     <h1 class="title">Decision Roulette</h1>
     <div class="wheel-container">
-        <!-- The labels are now back inside the wheel so they rotate with it -->
         <div class="wheel" id="wheel">
-            <div class="wheel-option option1">Project</div>
-            <div class="wheel-option option2">Study</div>
-            <div class="wheel-option option3">Games</div>
-            <div class="wheel-option option4">Anime</div>
+            <!-- Labels now have unique IDs for precise targeting -->
+            <div class="wheel-option" id="option1">Project</div>
+            <div class="wheel-option" id="option2">Study</div>
+            <div class="wheel-option" id="option3">Games</div>
+            <div class="wheel-option" id="option4">Anime</div>
         </div>
         <div class="pointer"></div>
     </div>
@@ -217,37 +218,38 @@
     function updateUI() {
         updateWheelColors();
         updateStatusDisplay();
-        // The labels are now updated every time the state changes
         updateWheelLabels();
     }
-    
-    // Function to update the positions and rotations of the text labels
-    function updateWheelLabels() {
-        const wheelOptions = document.querySelectorAll('.wheel-option');
-        let currentRotation = 0;
-        options.forEach((option, index) => {
-            
-            const angle = option.weight / 100 * 360; // Calculate angle for each slice
-            //Got Tired Figuring out the math to make the labels adjust to the center of the cone for each iteration
-            //The idea was for each iteration of the spin the chances for the chosen Item will be reduced by 50%
-            //and the reduced percentage from the chosen category would be distributed to the other categories increasing their probability
-            //the colored sections adjust as intended but I cant keep the labels on the center of the section after each adjusted iteration.
-            //at this point I know its a math problem.... For now Ill put a pin on this
-            if (option.weight){
 
-            }
-            const midAngle = currentRotation + angle /2; // Find the middle of the slice
-            console.log(angle);
-            // This transform will rotate the label and place it in the center of its slice
-            // The labels will now move with the wheel and their position will update
-            // to reflect the new slice sizes after each spin.
-            wheelOptions[index].style.transform = `
+    // CORRECTED Function to update the positions and rotations of the text labels
+    function updateWheelLabels() {
+        // Use a loop to get a reference to each option element by its ID
+        let currentCumulativeAngle = 0; // This will track the starting angle of each slice
+
+        // We get the total weight to handle cases where it might not be exactly 100
+        const totalWeight = options.reduce((sum, opt) => sum + opt.weight, 0);
+
+        options.forEach((option, index) => {
+            // Get the element using its ID
+            const labelElement = document.getElementById(`option${index + 1}`);
+            if (!labelElement) return; // Skip if element not found
+
+            // Calculate the angle for the current slice based on its weight
+            const sliceAngle = (option.weight / totalWeight) * 360;
+
+            // Calculate the midpoint of the current slice. This is the key.
+            // We subtract 90 degrees to align the first label correctly at the top
+            const midAngle = currentCumulativeAngle + (sliceAngle / 2) - 90;
+
+            // This transform will rotate the label to the correct position on the wheel
+            // and translate it outwards from the center.
+            labelElement.style.transform = `
                 rotate(${midAngle}deg) 
                 translateX(120px)
             `;
 
-            
-            currentRotation += angle;
+            // Update the cumulative angle for the next option in the loop
+            currentCumulativeAngle += sliceAngle;
         });
     }
 
@@ -356,6 +358,7 @@
                 cumulativeWeightBeforeWinner += tempOptions[i].weight;
             }
 
+            // The rotation logic is the same, but the UI will now update correctly
             const targetDegree = 360 - (cumulativeWeightBeforeWinner + tempOptions[winningIndex].weight / 2) / 100 * 360;
             
             // Add multiple full rotations for a satisfying spin effect
